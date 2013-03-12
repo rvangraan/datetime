@@ -1,0 +1,11 @@
+{application, datetime,
+ [
+  {description, "OpenSwitch Date and Time library with timezone support"},
+  {vsn, "1.0.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
