@@ -376,4 +376,4 @@ seconds_timestamp_difference_test_() ->
 
 unix_timestamp() ->
     {Mega, Sec, Micro} = os:timestamp(),
-    (Mega * 1000000 + Sec) * 1000000 + Micro.
+    Mega * 1000000 + Sec.
