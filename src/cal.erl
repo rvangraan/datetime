@@ -30,7 +30,8 @@
   valid_date/3,
   add_seconds_to_timestamp/2,
   seconds_timestamp_difference/2,
-  unix_timestamp/0
+  s_timestamp/0,
+  ms_timestamp/0
 ]).
 %%--------------------------------------------------------------------------------------------------
 
@@ -374,6 +375,14 @@ seconds_timestamp_difference_test_() ->
                                                 #datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} }))                                                       
      ].
 
-unix_timestamp() ->
-    {Mega, Sec, Micro} = os:timestamp(),
-    Mega * 1000000 + Sec.
+s_timestamp() ->
+    now_to_seconds(os:timestamp()).
+
+ms_timestamp() ->
+    now_to_milliseconds(os:timestamp()).
+
+now_to_seconds({Mega, Sec, _}) ->
+    (Mega * 1000000) + Sec.   
+    
+now_to_milliseconds({Mega, Sec, Micro}) ->
+    (Mega * 1000000 * 1000) + (Sec * 1000) + (Micro div 1000).
