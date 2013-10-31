@@ -1,7 +1,7 @@
 %%--------------------------------------------------------------------------------------------------
 -module(cal).
 %%--------------------------------------------------------------------------------------------------
--include_lib("datetime/include/datetime.hrl").
+-include("../include/datetime.hrl").
 -include_lib("eunit/include/eunit.hrl").
 %%--------------------------------------------------------------------------------------------------
 -export([
@@ -27,7 +27,11 @@
   universal_time/0,
   universal_time_to_local_time/1,
   valid_date/1,
-  valid_date/3
+  valid_date/3,
+  add_seconds_to_timestamp/2,
+  seconds_timestamp_difference/2,
+  s_timestamp/0,
+  ms_timestamp/0
 ]).
 %%--------------------------------------------------------------------------------------------------
 
@@ -334,3 +338,51 @@ valid_date(Y, M, D) ->
   calendar:valid_date(Y, M, D).
 
 %%--------------------------------------------------------------------------------------------------
+
+-spec add_seconds_to_timestamp(#datetime{}, integer()) -> #datetime{}.
+
+add_seconds_to_timestamp(Timestamp, Seconds) ->
+    GregorianSeconds = datetime_to_gregorian_seconds(Timestamp) + Seconds,
+    gregorian_seconds_to_datetime(GregorianSeconds).
+
+add_seconds_to_timestamp_test_() ->
+  [
+    ?_assertMatch(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=16,s=0} },
+                  add_seconds_to_timestamp(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} }, 540)),
+    ?_assertMatch(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=20,m=58,s=0} },
+                  add_seconds_to_timestamp(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} }, -540)),
+    ?_assertMatch(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} },
+                  add_seconds_to_timestamp(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} }, 0))        
+  ].
+
+%%--------------------------------------------------------------------------------------------------
+
+-spec seconds_timestamp_difference(#datetime{}, #datetime{}) -> integer().
+
+seconds_timestamp_difference(Timestamp1, Timestamp2) ->
+    datetime_to_gregorian_seconds(Timestamp1) - datetime_to_gregorian_seconds(Timestamp2).
+
+seconds_timestamp_difference_test_() ->
+    [
+     ?_assertMatch(-540,
+                   seconds_timestamp_difference(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=20,m=58,s=0} },
+                                                #datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} })),
+     ?_assertMatch(540,
+                   seconds_timestamp_difference(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=16,s=0} },
+                                                #datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} })),
+     ?_assertMatch(0,
+                   seconds_timestamp_difference(#datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} },
+                                                #datetime{ date = #date{ y=1612, m=3, d=18}, time = #time{h=21,m=7,s=0} }))                                                       
+     ].
+
+s_timestamp() ->
+    now_to_seconds(os:timestamp()).
+
+ms_timestamp() ->
+    now_to_milliseconds(os:timestamp()).
+
+now_to_seconds({Mega, Sec, _}) ->
+    (Mega * 1000000) + Sec.   
+    
+now_to_milliseconds({Mega, Sec, Micro}) ->
+    (Mega * 1000000 * 1000) + (Sec * 1000) + (Micro div 1000).
