@@ -22,7 +22,7 @@
 -type t_datetime1970() :: { {year1970(), month(), day()}, t_time()}.
 
 -type tz()     :: string() | local.
--type offset() :: -12..12 | undefined.
+-type gmt_offset() :: integer() | undefined.
 -type now()    :: tuple( integer(), integer(), integer() ).
 
 %%--------------------------------------------------------------------------------------------------
@@ -38,14 +38,19 @@
   m = 0              :: minute(),
   s = 0              :: second(),
   ms = 0             :: integer(),
-  tz = local         :: tz(),
-  offset = undefined :: offset()
+  tz = "GMT"         :: tz()
 }).
 
 -record(datetime,{
   date :: #date{},
   time :: #time{}
 }).
+
+-record(dt_format_spec,
+	{format_spec=iso8601,
+	 null_behaviour=retain % retain | replace_with_undefined 
+	}).
+	  
 
 %%--------------------------------------------------------------------------------------------------
 

@@ -170,15 +170,17 @@ local_time_test_() ->
   t_datetime1970(), 'true' | 'false' | 'undefined') -> t_datetime1970().
 
 local_time_to_universal_time(
-  #datetime{date = #date{ y=Y, m=M, d=D }, time = #time{ h=HH, m=MM, s=SS, offset=local} }, IsDst) ->
+  %% TODO: Take timezone into consideration
+  #datetime{date = #date{ y=Y, m=M, d=D }, time = #time{ h=HH, m=MM, s=SS} }, IsDst) ->
 
   {Date,Time} = calendar:local_time_to_universal_time({ {Y,M,D}, {HH,MM,SS}}, IsDst),
   datetime:new(Date,time:new(Time, 0, ?UTC));
 
-local_time_to_universal_time(DateTime = #datetime{date = #date{}, time = #time{ offset=0 }}, _IsDst) ->
-  DateTime;
+local_time_to_universal_time(DateTime = #datetime{date = #date{}, time = #time{ tz=?UTC }}, _IsDst) ->
+    %% TODO: Take timezone into consideration
+    DateTime;
 
-local_time_to_universal_time(#datetime{date = #date{}, time = #time{ offset=_Offset }}, _IsDst) ->
+local_time_to_universal_time(#datetime{date = #date{}, time = #time{ }}, _IsDst) ->
   exit(badarg);
 
 local_time_to_universal_time(DateTime, IsDst) ->
@@ -188,15 +190,15 @@ local_time_to_universal_time(DateTime, IsDst) ->
 local_time_to_universal_time2_test_() ->
   [
     ?_assertMatch(
-      #datetime{date = #date{ y=2001, m=12, d=12}, time = #time{ h=_H, m=_, s=1, offset=_, tz=_} },
+      #datetime{date = #date{ y=2001, m=12, d=12}, time = #time{ h=_H, m=_, s=1,  tz=_} },
       local_time_to_universal_time({{2001,12,12},{13,56,1}}, true)),
     ?_assertMatch(
-      #datetime{date = #date{ y=2001, m=12, d=12}, time = #time{ h=_H, m=_, s=1, offset=_, tz=_}},
+      #datetime{date = #date{ y=2001, m=12, d=12}, time = #time{ h=_H, m=_, s=1, tz=_}},
       local_time_to_universal_time( datetime:new( date:new({2001,12,12}), time:new({13,56,1}, 0)), true)),
     ?_assertExit(
       badarg,
       local_time_to_universal_time(
-        #datetime{date = #date{ y=2011, m=06, d=13}, time = #time{ h=14, m=54, s=11, ms=0, offset=1}}, true) )
+        #datetime{date = #date{ y=2011, m=06, d=13}, time = #time{ h=14, m=54, s=11, ms=0}}, true) )
   ].
 
 %%--------------------------------------------------------------------------------------------------
@@ -224,7 +226,7 @@ now_to_datetime({MSec, Sec, _uSec}) ->
 now_to_datetime_test_() ->
   [
     ?_assertMatch(
-      #datetime{ date = #date{ y=2011, m=6, d=17}, time = #time{ h=16, m=3, s=16, offset=0, tz=?UTC} },
+      #datetime{ date = #date{ y=2011, m=6, d=17}, time = #time{ h=16, m=3, s=16,  tz=?UTC} },
       now_to_datetime({1308, 326596, 372064}))
   ].
 
@@ -239,7 +241,7 @@ now_to_local_time({MSec, Sec, _uSec}) ->
 now_to_local_time_test_() ->
   [
     ?_assertMatch(
-      #datetime{ date = #date{ y=2011, m=6, d=17}, time = #time{ h=_, m=42, s=32, offset=local, tz=undefined} },
+      #datetime{ date = #date{ y=2011, m=6, d=17}, time = #time{ h=_, m=42, s=32,  tz=?UTC} },
       now_to_local_time({1308, 325352, 952886}))
   ].
 
@@ -257,7 +259,7 @@ seconds_to_time(Secs) ->
 
 seconds_to_time_test_() ->
   [
-    ?_assertMatch( #time{h=_, m=25, s=45, offset=local}, seconds_to_time(12345) )
+    ?_assertMatch( #time{h=_, m=25, s=45, tz=?UTC}, seconds_to_time(12345) )
   ].
 
 %%--------------------------------------------------------------------------------------------------
@@ -290,7 +292,7 @@ now_to_universal_time(Now) ->
 now_to_universal_time_test_() ->
   [
     ?_assertMatch( 
-      #datetime{ date = #date{ y=2011, m=06, d=17}, time = #time{ h=15, m=15, s=54, offset=0, tz=?UTC} },
+      #datetime{ date = #date{ y=2011, m=06, d=17}, time = #time{ h=15, m=15, s=54,  tz=?UTC} },
       now_to_universal_time({1308, 323754, 384823}))   
    ].
 

@@ -28,7 +28,10 @@ new(_Date = {Year, Month, Day}) ->
   new(Year, Month, Day);
 
 new(#date{} = Date) ->
-  Date.
+    Date;
+new(#{date := Date = {_Year, _Month, _Day}}) ->
+    new(Date).
+
 
 %%--------------------------------------------------------------------------------------------------
 

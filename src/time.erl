@@ -7,10 +7,8 @@
 -export([
   new/0,
   new/1,
-  new/2,
-  new/3,
-  new/4,
-  new/5,
+	 new/2,
+	 new/3,
   to_string/1,
   to_erlang/1,
   from_now/1
@@ -29,82 +27,67 @@ new() ->
 -spec new(t_time()) -> #time{};
          (t_time()) -> #time{}.
 
+base_time_data() ->
+    #{tz=>"GMT"}.
+
+new(DateTimeInfo = #{time := Time}) when is_tuple(Time)->
+    #{tz := TimeZone} = maps:merge(base_time_data(),DateTimeInfo),
+    new(Time,TimeZone);
+
 new(Time = #time{}) ->
   Time;
 
 new(_Time = {Hour, Minute, Second}) ->
   new(Hour, Minute, Second).
 
-%%--------------------------------------------------------------------------------------------------
-
--spec new(t_time(), offset()) -> #time{}.
-       
-new(_Time = {Hour, Minute, Second}, Offset) ->
-  new(Hour, Minute, Second, Offset).
 
 %%--------------------------------------------------------------------------------------------------
+-spec new({hour(), minute(), second()},tz()) -> #time{}.
 
--spec new(hour(), minute(), second()) -> #time{};
-         (t_time(), offset(), tz())   -> #time{}.
+new({Hour,Minute,Second},TimeZone) when  is_integer(Hour), Hour >= 0, Hour =< 23,
+					 is_integer(Minute), Minute >= 0, Minute =< 59,
+					 is_integer(Second), Second >= 0, Second =< 59,
+					 
+					 (is_list(TimeZone) or (TimeZone =:= undefined)) ->
+    new(Hour, Minute, Second, TimeZone).
 
-new(Hour,Minute,Second) 
-when 
-  is_integer(Hour), Hour >= 0, Hour =< 23,
-  is_integer(Minute), Minute >= 0, Minute =< 59,
-  is_integer(Second), Second >= 0, Second =< 59 
-->
-  #time{m = Minute, h = Hour, s = Second, offset = local};
 
-new({Hour,Minute,Second},Offset,TimeZone) 
-when 
-  is_integer(Hour), Hour >= 0, Hour =< 23,
-  is_integer(Minute), Minute >= 0, Minute =< 59,
-  is_integer(Second), Second >= 0, Second =< 59,
-  ((is_integer(Offset) and (Offset >= -12) and (Offset =< 12)) or (Offset =:= local)),
-  (is_list(TimeZone) or (TimeZone =:= undefined))
-->
-  new(Hour, Minute, Second, Offset, TimeZone).
+%%--------------------------------------------------------------------------------------------------
+
+-spec new(hour(), minute(), second()) -> #time{}.
+
+new(Hour,Minute,Second) when is_integer(Hour), Hour >= 0, Hour =< 23,
+			     is_integer(Minute), Minute >= 0, Minute =< 59,
+			     is_integer(Second), Second >= 0, Second =< 59 ->
+    #time{m = Minute, h = Hour, s = Second,  tz= "GMT"}.
+
 
 %%--------------------------------------------------------------------------------------------------  
 
--spec new( hour(), minute(), second(), offset()) -> #time{}.
-
-new(Hour,Minute,Second,Offset) 
-when 
-  is_integer(Hour), Hour >= 0, Hour =< 23,
-  is_integer(Minute), Minute >= 0, Minute =< 59,
-  is_integer(Second), Second >= 0, Second =< 59,
-  ((is_integer(Offset) and (Offset >= -12) and (Offset =< 12)) or (Offset =:= local)) 
-->
-  new(Hour, Minute, Second, Offset, undefined).
-
 %%--------------------------------------------------------------------------------------------------
 
--spec new(hour(), minute(), second(), offset(), tz()) -> #time{}.
+-spec new(hour(), minute(), second(), tz()) -> #time{}.
 
-new(Hour, Minute, Second, 0, undefined) ->
-  new(Hour, Minute, Second, 0, ?UTC);
+new(Hour, Minute, Second, undefined) ->
+  new(Hour, Minute, Second, ?UTC);
 
-new(Hour, Minute, Second, Offset, TimeZone) 
-when 
-  is_integer(Hour), Hour >= 0, Hour =< 23,
-  is_integer(Minute), Minute >= 0, Minute =< 59,
-  is_integer(Second), Second >= 0, Second =< 59,
-  ((is_integer(Offset) and (Offset >= -12) and (Offset =< 12)) or (Offset =:= local)),
-  (is_list(TimeZone) or (TimeZone =:= undefined))
-->
-  #time{m = Minute, h = Hour, s = Second, offset = Offset, tz = TimeZone}.
+new(Hour, Minute, Second, TimeZone) when is_integer(Hour), Hour >= 0, Hour =< 23,
+					 is_integer(Minute), Minute >= 0, Minute =< 59,
+					 is_integer(Second), Second >= 0, Second =< 59,
+					 (is_list(TimeZone) or (TimeZone =:= undefined)) ->
+  #time{m = Minute, h = Hour, s = Second, tz = TimeZone}.
 
 %%--------------------------------------------------------------------------------------------------
 
 -spec to_string( #time{} ) -> string().
 
 to_string(Time) ->
-  {time, Hour, Min, Sec, _Milisec, _, _} = Time, 
+  #time{h=Hour, m=Min, s=Sec,tz=_TZ} = Time, 
   lists:flatten(io_lib:format("~2..0B:~2..0B:~2..0B",[Hour, Min, Sec])).        
 
 to_string_test() ->
-  Time = {time, 12, 18, 46, 0, local, undefined},
+    
+  Time = #time{h= 12,m= 18, s=46, tz="GMT"},
   ?assertEqual( "12:18:46", to_string(Time) ).
 
 %%--------------------------------------------------------------------------------------------------
@@ -112,11 +95,11 @@ to_string_test() ->
 -spec to_erlang( #time{} ) -> t_time(). 
 
 to_erlang(Time) ->
-  {time, Hour, Min, Sec, _Milisec, _, _} = Time, 
+  #time{h= Hour, m=Min, s=Sec} = Time, 
   {Hour, Min, Sec}.
 
 to_erlang_test() ->
-  Time = {time, 12, 18, 46, 0, local, undefined},
+  Time = #time{h= 12, m=18, s=46},
   ?assertEqual( {12, 18, 46}, to_erlang(Time) ).
 
 %%--------------------------------------------------------------------------------------------------
@@ -124,14 +107,18 @@ to_erlang_test() ->
 new_test_() ->
   [
     ?_assertMatch(
-      #time{ h=10, m=11, s=12, offset=local },
+      #time{ h=10, m=11, s=12,  tz="GMT" },
       new(10, 11, 12)),
     ?_assertMatch(
-      #time{ h=10, m=11, s=12, offset=local },
+      #time{ h=10, m=11, s=12, tz="GMT" },
       new({10, 11, 12})),
     ?_assertMatch(
-      #time{ h=10, m=11, s=12, offset=2, tz=?UTC },
-      new({10, 11, 12}, 2, ?UTC))
+      #time{ h=10, m=11, s=12, tz=?UTC },
+      new({10, 11, 12}, ?UTC)),
+    ?_assertMatch(
+      #time{ h=10, m=11, s=12, tz="SAST" },
+      new(#{time=>{10, 11, 12}, tz=>"SAST"}))
+
   ].
 
 %%--------------------------------------------------------------------------------------------------
@@ -141,7 +128,7 @@ new_test_() ->
 
 from_now(Now) ->
   {_Date, {HH, MM, SS}} = calendar:now_to_datetime(Now),
-  #time{m = MM, h = HH, s = SS}.
+  #time{m = MM, h = HH, s = SS, tz = "GMT"}.
 
 time_test_() ->
   [
