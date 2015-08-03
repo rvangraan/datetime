@@ -23,7 +23,7 @@
 
 -type tz()     :: string() | local.
 -type offset() :: -12..12 | undefined.
--type now()    :: tuple( integer(), integer(), integer() ).
+-type now()    :: { integer(), integer(), integer() }.
 
 %%--------------------------------------------------------------------------------------------------
 
